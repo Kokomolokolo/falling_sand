@@ -10,6 +10,7 @@ enum Cell {
     Empty,
     Sand,
     Stone,
+    Water,
 }
 
 struct World {
@@ -51,6 +52,7 @@ impl World {
                     Cell::Empty => continue,
                     Cell::Sand => YELLOW,
                     Cell::Stone => GRAY,
+                    Cell::Water => BLUE,
                 };
 
                 // RECTAGLE, gemalt an x position * cell_size
@@ -97,6 +99,53 @@ impl World {
                             }
                         }
                     }
+                    Cell::Water => {
+                        // Nach unten Fallen
+                        if y + 1 < GRID_HEIGHT && self.is_empty(x, y + 1) {
+                            self.set(x, y, Cell::Empty);
+                            self.set(x, y +  1, Cell::Water);
+                        } 
+                        // Diagonale Bewegung. Ist rechts oder links frei?
+                        else {
+                            let left_free = x > 0 && self.is_empty(x - 1, y + 1);
+                            let right_free: bool = x + 1 < GRID_WIDTH && self.is_empty(x + 1, y + 1);
+
+                            if left_free && right_free {
+                                // go left hat 50% true zu sein
+                                let go_left = rand::gen_range(0, 2) == 0; // 2 ist exkludiert.
+                                let new_x = if go_left { x - 1 } else { x + 1};
+                                // Sand auf die zufällig gewählte Stelle gesetzt.
+                                self.set(new_x, y + 1, Cell::Water);
+                                self.set(x, y, Cell::Empty);
+                            } else if left_free {
+                                self.set(x - 1, y + 1, Cell::Water);
+                                self.set(x, y, Cell::Empty);
+                            } else if right_free {
+                                self.set(x + 1, y + 1, Cell::Water);
+                                self.set(x, y, Cell::Empty);
+                            }
+                            // Schräg nach rechts/links
+                            else {
+                                let left_free: bool = x > 0 && self.is_empty(x - 1, y);
+                                let right_free: bool = x + 1 < GRID_WIDTH && self.is_empty(x + 1, y);
+
+                                if left_free && right_free {
+                                    // go left hat 50% true zu sein
+                                    let go_left = rand::gen_range(0, 2) == 0; // 2 ist exkludiert.
+                                    let new_x = if go_left { x - 1 } else { x + 1};
+                                    // Sand auf die zufällig gewählte Stelle gesetzt.
+                                    self.set(new_x, y, Cell::Water);
+                                    self.set(x, y, Cell::Empty);
+                                } else if left_free {
+                                    self.set(x - 1, y, Cell::Water);
+                                    self.set(x, y, Cell::Empty);
+                                } else if right_free {
+                                    self.set(x + 1, y, Cell::Water);
+                                    self.set(x, y, Cell::Empty);
+                                }
+                            }
+                        }
+                    }
                     Cell::Empty | Cell::Stone  => {
                         continue
                     }
@@ -105,23 +154,28 @@ impl World {
         }
     }
 
-    fn handle_sendung_mit_der_maus(&mut self) {
+    fn handle_sendung_mit_der_maus(&mut self, cell: Cell) {
         if is_mouse_button_down(MouseButton::Left) {
             let (mouse_x, mouse_y) = mouse_position();
             
             let grid_x = (mouse_x / CELL_SIZE) as usize;
             let grid_y = (mouse_y / CELL_SIZE) as usize;
             
-            self.set(grid_x, grid_y, Cell::Sand);
+            self.set(grid_x, grid_y, cell);
         }
-        else if is_mouse_button_down(MouseButton::Right) {
-            let (mouse_x, mouse_y) = mouse_position();
-            
-            let grid_x = (mouse_x / CELL_SIZE) as usize;
-            let grid_y = (mouse_y / CELL_SIZE) as usize;
-            
-            self.set(grid_x, grid_y, Cell::Stone);
+    }
+
+    fn handle_keyboard(& self, current: Cell) -> Cell {
+        if is_key_pressed(KeyCode::Key1) {
+            return Cell::Sand;
         }
+        if is_key_pressed(KeyCode::Key2) {
+            return Cell::Stone;
+        }
+        if is_key_pressed(KeyCode::Key3) {
+            return Cell::Water;
+        }
+        current
     }
 }
 
@@ -144,10 +198,13 @@ async fn main() {
         }
     }
 
+    let mut current_material: Cell = Cell::Sand;
     loop {
         clear_background(BLACK);
         
-        world.handle_sendung_mit_der_maus();
+        current_material = world.handle_keyboard(current_material);
+        world.handle_sendung_mit_der_maus(current_material);
+
         world.set(GRID_HEIGHT / 2 + 25, 10, Cell::Sand);
         
         world.update();
