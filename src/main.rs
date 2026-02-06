@@ -28,11 +28,12 @@ async fn main() {
     }
 
     let mut current_material: Cell = Cell::Sand;
+    let mut radius = 2;
     loop {
         clear_background(BLACK);
         
-        current_material = world.handle_keyboard(current_material);
-        world.handle_sendung_mit_der_maus(current_material);
+        (current_material, radius) = world.handle_keyboard(current_material, radius);
+        world.handle_sendung_mit_der_maus(current_material,radius);
 
         world.set(GRID_HEIGHT / 2 + 25, 10, Cell::Sand);
         

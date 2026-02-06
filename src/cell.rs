@@ -1,5 +1,5 @@
 
-pub const CELL_SIZE: f32 = 4.0;
+pub const CELL_SIZE: f32 = 2.0;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Cell {
@@ -8,4 +8,5 @@ pub enum Cell {
     Stone,
     Water,
     Fire,
+    Smoke,
 }

@@ -1,15 +1,14 @@
 
 
-use crate::{cell::{CELL_SIZE, Cell}, physics::{update_fire, update_sand, update_water}};
+use crate::{cell::{CELL_SIZE, Cell}, physics::{update_fire, update_sand, update_smoke, update_water}};
 use macroquad::prelude::*;
 
-pub const GRID_WIDTH: usize = 200;
-pub const GRID_HEIGHT: usize = 150;
+pub const GRID_WIDTH: usize = 400;
+pub const GRID_HEIGHT: usize = 300;
 
 pub struct World {
     pub grid: Vec<Vec<Cell>>
 }
-
 impl World {
     pub fn new() -> Self {
         Self {
@@ -47,6 +46,7 @@ impl World {
                     Cell::Stone => GRAY,
                     Cell::Water => BLUE,
                     Cell::Fire => ORANGE,
+                    Cell::Smoke => LIGHTGRAY,
                 };
 
                 // RECTAGLE, gemalt an x position * cell_size
@@ -61,6 +61,17 @@ impl World {
         }
     }
     pub fn update(&mut self) {
+        // Aufsteigende Partikel zuerst
+        for y in 0..GRID_HEIGHT {
+            for x in 0..GRID_WIDTH {
+                let cell = self.grid[y][x];
+                match cell {
+                    Cell::Smoke => update_smoke(self, x, y),
+                    _ => {}
+                }
+            }
+        }
+
         for y in (0..GRID_HEIGHT).rev() {
             for x in 0..GRID_WIDTH {
                 let cell = self.grid[y][x];
@@ -74,30 +85,50 @@ impl World {
         }
     }
 
-    pub fn handle_sendung_mit_der_maus(&mut self, cell: Cell) {
+    pub fn handle_sendung_mit_der_maus(&mut self, cell: Cell, radius: i32) {
         if is_mouse_button_down(MouseButton::Left) {
             let (mouse_x, mouse_y) = mouse_position();
             
-            let grid_x = (mouse_x / CELL_SIZE) as usize;
-            let grid_y = (mouse_y / CELL_SIZE) as usize;
+            let grid_x = (mouse_x / CELL_SIZE);
+            let grid_y = (mouse_y / CELL_SIZE);
+            for x in -radius..radius {
+                for y in -radius..radius {
+                    self.set((grid_x as i32 + x) as usize, (grid_y as i32 + y) as usize, cell);
+                }
+            }
             
-            self.set(grid_x, grid_y, cell);
         }
     }
 
-    pub fn handle_keyboard(& self, current: Cell) -> Cell {
+    pub fn handle_keyboard(& self, current: Cell, mut radius: i32) -> (Cell, i32) {
         if is_key_pressed(KeyCode::Key1) {
-            return Cell::Sand;
+            return (Cell::Sand, radius);
         }
         if is_key_pressed(KeyCode::Key2) {
-            return Cell::Stone;
+            return (Cell::Stone, radius);
         }
         if is_key_pressed(KeyCode::Key3) {
-            return Cell::Water;
+            return (Cell::Water, radius);
         }
         if is_key_pressed(KeyCode::Key4) {
-            return Cell::Fire;
+            return (Cell::Fire, radius);
         }
-        current
+        if is_key_pressed(KeyCode::Key5) {
+            return (Cell::Smoke, radius);
+        }
+        if is_key_pressed(KeyCode::Up) {
+            radius += 1
+        }
+        if is_key_pressed(KeyCode::Down) {
+            radius -= 1
+        }
+        if radius < 1 {
+            radius = 1
+        }
+        if radius > 4 {
+            radius = 4
+        }
+        println!("{}", radius);
+        (current, radius)
     }
 }
